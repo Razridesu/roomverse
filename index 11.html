@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#f1eee8"/>
+<title>ROOMVERSE v0.5.0 — LIFE & STUDIO</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;600&family=Noto+Serif+JP:wght@400;500&display=swap');
+:root{--quartz:#f1eee8;--white:#fff;--ink:#383735;--line:#d8d5d0;--muted:#78736d;--panel:#ffffffed}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--quartz);color:var(--ink);font-family:'Noto Serif JP',serif}button,select,input{font:inherit}button{cursor:pointer}#scene{position:fixed;inset:0;touch-action:none}canvas{display:block}
+.topbar{position:fixed;left:max(16px,env(safe-area-inset-left));right:max(16px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));display:flex;align-items:flex-start;justify-content:space-between;pointer-events:none;z-index:10;gap:8px}.brand,.actions,.chip,.status{pointer-events:auto;backdrop-filter:blur(16px);background:#fffffff2;border:1px solid #dfdbd5;border-radius:12px;box-shadow:0 4px 25px #2d24110b}.brand{padding:9px 14px;font:500 clamp(19px,3.5vw,26px)/1 'Bodoni Moda',serif;letter-spacing:.07em}.actions{display:flex;gap:5px;padding:5px}.icon-btn{border:0;background:transparent;color:var(--ink);min-width:38px;height:38px;border-radius:9px;font:18px Arial,sans-serif}.icon-btn:hover,.icon-btn.active{background:#eeebe5}.icon-btn:disabled{opacity:.35;cursor:default}
+.bottom{position:fixed;bottom:max(17px,env(safe-area-inset-bottom));left:16px;right:16px;display:flex;align-items:flex-end;justify-content:space-between;gap:8px;z-index:10;pointer-events:none}.room-label{pointer-events:auto;background:#ffffffde;border:1px solid #dfdbd5;border-radius:11px;padding:10px 12px;font:13px 'Bodoni Moda',serif;letter-spacing:.03em;backdrop-filter:blur(12px)}.primary{pointer-events:auto;background:var(--ink);border:1px solid var(--ink);color:white;border-radius:26px;padding:12px 20px;font:14px 'Bodoni Moda',serif;letter-spacing:.11em;min-width:105px;box-shadow:0 8px 26px #25221d20}.primary:hover{background:#57544f}
+.editor{position:fixed;z-index:9;bottom:calc(max(74px,env(safe-area-inset-bottom) + 67px));left:50%;transform:translateX(-50%);width:min(500px,calc(100% - 30px));background:#fffffff3;backdrop-filter:blur(20px);border:1px solid #ddd8d2;border-radius:18px;padding:14px;box-shadow:0 12px 40px #2c24151c;display:none;max-height:min(58vh,560px);overflow:auto}.editor.open{display:block}.section-title{font:500 15px 'Bodoni Moda',serif;letter-spacing:.1em;display:flex;justify-content:space-between;align-items:center;margin:0 0 12px}.caption{color:var(--muted);font-size:11px}.tabs{display:flex;gap:7px;margin-bottom:12px}.tab{background:transparent;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:10px 6px;flex:1;font-size:12px}.tab.selected{background:#e7e3dc;border-color:#b4aea4}.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tool{background:#f8f7f4;border:1px solid #e1ddd7;color:var(--ink);border-radius:12px;padding:12px 6px;min-height:68px;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px}.tool em{font-size:22px;font-style:normal}.tool:disabled{opacity:.4}.row{display:flex;gap:8px;align-items:center;justify-content:space-between}.sub-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}.small{border:1px solid var(--line);background:white;color:var(--ink);padding:9px 10px;border-radius:9px;font-size:12px}.small.danger{color:#9e5555}.small:disabled{opacity:.4}.field{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:10px 0;font-size:12px}input[type=range]{width:56%;accent-color:#6e726b}select{border-radius:8px;border:1px solid var(--line);background:white;color:var(--ink);padding:8px;max-width:56%}.hint{position:fixed;top:74px;left:50%;transform:translateX(-50%);z-index:8;background:#ffffffe0;padding:8px 12px;border-radius:30px;border:1px solid #e1ddd7;color:#57534e;font-size:11px;text-align:center;max-width:calc(100vw - 20px);pointer-events:none;transition:opacity .3s}.toast{position:fixed;z-index:30;top:85px;left:50%;transform:translateX(-50%);background:#383735;color:#fff;padding:11px 17px;border-radius:12px;font-size:12px;opacity:0;transition:opacity .25s;pointer-events:none}.toast.show{opacity:1}.status{position:fixed;right:16px;top:75px;z-index:7;padding:7px 10px;font-size:10px;color:var(--muted)}.hide{display:none!important}
+@media(min-width:900px){.editor{left:20px;top:96px;bottom:auto;transform:none;width:296px;max-height:calc(100vh - 125px);padding:16px}.status{top:76px}.bottom{left:20px;right:20px}.tools{grid-template-columns:repeat(2,1fr)}.tool{min-height:80px}.hint{top:22px;left:50%}}
+@media(max-height:540px){.editor{max-height:50vh}.hint{display:none}}
+
+/* v0.2 — fullscreen first, compact editor, safe-area aware */
+:root{--panel:#fffffff7}
+.topbar{top:max(12px,env(safe-area-inset-top));align-items:center}
+.brand{font-size:clamp(16px,3vw,23px);padding:10px 12px}
+.actions{border-radius:13px}
+.status{top:calc(max(12px,env(safe-area-inset-top)) + 59px);right:16px;max-width:145px;text-align:right}
+.hint{top:calc(max(12px,env(safe-area-inset-top)) + 70px);opacity:.82;max-width:66vw;font-size:10px;line-height:1.6}
+.bottom{bottom:max(12px,env(safe-area-inset-bottom));transition:bottom .22s;z-index:14}
+.editor{left:12px;right:12px;width:auto;transform:none;bottom:calc(max(12px,env(safe-area-inset-bottom)) + 68px);max-height:min(34dvh,295px);overflow:auto;padding:11px 13px;border-radius:17px;box-shadow:0 9px 30px #2c24151c;transition:max-height .2s,opacity .2s;}
+.editor.open{display:block}
+.editor.collapsed{max-height:62px;overflow:hidden}
+.editor.collapsed .tabs,.editor.collapsed #panel{display:none}
+.section-title{margin:0 0 8px;min-height:28px;font-size:13px}
+.editor.collapsed .section-title{margin-bottom:0}
+.editor-title{display:flex;gap:7px;align-items:center}
+.editor-top-right{display:flex;gap:6px;align-items:center}
+.drawer-toggle{border:1px solid var(--line);background:#f7f6f3;border-radius:8px;min-width:33px;height:28px;color:var(--ink);font-size:17px}
+.tabs{margin-bottom:8px;gap:5px}.tab{padding:8px 6px}
+.tools{gap:6px}.tool{min-height:57px;padding:7px 4px;font-size:11px}.tool em{font-size:18px}
+.sub-actions{margin-top:7px}.small{padding:8px;font-size:11px}
+.caption{line-height:1.65}.panel-note{margin:6px 0 2px}
+.setting-chip{border:1px solid var(--line);border-radius:8px;background:#f7f6f3;color:var(--ink);padding:8px 9px;font-size:11px;cursor:pointer}
+.setting-chip.selected{background:#e4e6e1;border-color:#818f7e}
+.setting-row{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0}
+.tool.active,.small.active{background:#e4e6e1;border-color:#859581}
+.edit-placeholder{background:#f8f7f4;border:1px solid #e1ddd7;border-radius:10px;padding:9px;font-size:11px;color:#706b65}
+@media(max-width:600px){
+ .brand{font-size:17px;letter-spacing:.04em}.topbar{gap:6px}.actions{padding:4px;gap:0}
+ .icon-btn{min-width:33px;height:34px;font-size:17px}.status{font-size:9px}
+ .editor{max-height:min(31dvh,260px)}.editor.expanded{max-height:min(47dvh,420px)}
+ .editor.collapsed{max-height:53px}
+ .hint{max-width:54vw;left:16px;transform:none;text-align:left;padding:7px 9px}
+}
+@media(min-width:900px){
+ .editor{left:20px;right:auto;top:95px;bottom:auto;width:310px;max-height:calc(100dvh - 140px);padding:15px;transform:none}
+ .editor.expanded{max-height:calc(100dvh - 140px)}.editor.collapsed{max-height:55px}
+ .bottom{left:20px;right:20px}.tools{grid-template-columns:repeat(2,1fr)}
+ .hint{top:22px;left:50%;transform:translateX(-50%)}
+}
+
+/* v0.3 : camera controls remain reachable above editor */
+.camera-dock{position:fixed;z-index:22;right:12px;top:calc(max(12px,env(safe-area-inset-top)) + 64px);display:flex;flex-direction:column;gap:6px;pointer-events:auto}
+.camera-dock button{border:1px solid #dad6cf;background:#fffffff2;border-radius:11px;min-width:61px;height:41px;color:#383735;box-shadow:0 4px 18px #28221c15;font:20px Arial,sans-serif}
+.camera-dock button span{font:9px 'Bodoni Moda',serif;letter-spacing:.04em;display:block}
+.hint{display:none}.topbar{z-index:24}.status{z-index:23;top:calc(max(12px,env(safe-area-inset-top)) + 247px)}
+.editor{z-index:20;max-height:min(31dvh,252px)}.editor.collapsed{max-height:49px}.editor.expanded{max-height:min(46dvh,385px)}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr)}.tab{min-width:0;padding:7px 2px;font-size:11px}
+@media(max-width:600px){.brand{font-size:15px;padding:8px}.icon-btn{min-width:32px}.camera-dock button{min-width:47px;height:42px}.editor{max-height:min(29dvh,240px)}.editor.expanded{max-height:min(42dvh,370px)}.status{top:auto;bottom:calc(max(12px,env(safe-area-inset-bottom)) + 72px);left:12px;right:auto}}
+@media(min-width:900px){.camera-dock{top:95px;right:20px}.editor{max-height:calc(100dvh - 140px)}.editor.expanded{max-height:calc(100dvh - 140px)}}
+
+/* v0.3.1 - clear release identity and accessible window controls */
+.version-stamp{font:600 10px Arial,sans-serif;letter-spacing:0;color:#6b706b;vertical-align:middle;margin-left:5px}
+.window-quick{background:#e5eee8!important;border-color:#9aada0!important}
+.camera-dock{max-height:calc(100dvh - 245px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.camera-dock button{flex-shrink:0}
+.window-hint{margin:5px 0 0;color:#68645e;font-size:11px;line-height:1.6}
+.window-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:9px 0}
+.window-option{background:#f7f6f3;border:1px solid #d8d5d0;border-radius:11px;min-height:51px;padding:9px;color:#383735;text-align:left;font:12px 'Noto Serif JP',serif}
+.window-option.selected{background:#e5eee8;border-color:#8da69a}
+.window-option small{display:block;font:10px Arial,sans-serif;color:#76736d;margin-top:4px;letter-spacing:.04em}
+.window-corner{background:#f2f0ec;border:1px solid #d5d0c8;border-radius:8px;padding:8px 10px;font-size:11px;color:#514d48}
+@media(max-width:600px){.brand{font-size:14px}.version-stamp{font-size:9px}.camera-dock{top:calc(max(12px,env(safe-area-inset-top)) + 58px)}.camera-dock button{min-width:51px;height:38px;font-size:16px}.camera-dock button span{font-size:9px}.status{max-width:125px}}
+
+/* v0.3.2: saved-room repair and safe selection controls */
+.object-list{max-height:110px;overflow:auto;border:1px solid #e1ddd7;border-radius:10px;background:#faf9f6;margin-top:8px}
+.object-entry{display:flex;align-items:center;gap:5px;padding:5px 7px;border-bottom:1px solid #ece9e3}
+.object-entry:last-child{border-bottom:0}.object-entry.active{background:#e9eee9}
+.object-pick{flex:1;text-align:left;background:none;border:0;color:#383735;font-size:11px;padding:6px 2px}
+.object-remove{border:1px solid #dfc5c5;color:#9e5555;background:#fff;border-radius:7px;padding:6px 9px;font-size:11px}
+.safe-toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.small.strong{background:#383735;color:white}
+.history-controls{border-top:1px solid #e4dfd9;padding-top:9px;margin-top:10px}
+.history-controls select{width:100%;max-width:100%;font-size:11px}
+.field-note{font-size:10px;color:#79736e;line-height:1.6;margin:6px 0}
+@media(max-width:600px){.editor.expanded{max-height:min(60dvh,530px)}.object-list{max-height:105px}}
+
+/* v0.4 — clean architectural overlay / safe room framing */
+.brand{letter-spacing:.045em}
+.version-stamp{font-size:9px;letter-spacing:.08em}
+.tool:focus-visible,.small:focus-visible,.icon-btn:focus-visible{outline:2px solid #7d8c86;outline-offset:2px}
+@media(max-width:600px){.camera-dock{right:9px;gap:4px}.camera-dock button{min-width:45px;height:40px}.editor{box-shadow:0 8px 28px #4d44321c}}
+
+/* v0.5 – quiet, usable fullscreen controls */
+.brand{background:#fffffff0;font-size:clamp(16px,2.8vw,22px)}
+.camera-dock{top:calc(max(14px,env(safe-area-inset-top)) + 68px);gap:7px}
+.camera-dock button{width:51px;min-width:51px;height:47px;border-radius:15px;font-size:20px}
+.camera-dock button span{font:10px 'Noto Serif JP',serif}
+.editor{max-height:min(35dvh,320px)}.editor.expanded{max-height:min(51dvh,440px)}
+.mode-switch{position:fixed;z-index:27;top:calc(max(14px,env(safe-area-inset-top)) + 69px);left:12px;display:flex;border:1px solid #ddd8d0;border-radius:14px;background:#ffffffed;backdrop-filter:blur(14px);padding:4px;gap:3px;box-shadow:0 7px 24px #1713090d}
+.mode-switch button{border:0;background:transparent;color:#625e58;padding:11px 11px;border-radius:11px;font:600 11px Arial,sans-serif;letter-spacing:.06em;min-width:64px}
+.mode-switch button.active{background:#3f4440;color:white}
+.mode-help{position:fixed;z-index:9;bottom:calc(max(13px,env(safe-area-inset-bottom)) + 74px);left:50%;transform:translateX(-50%);max-width:80vw;background:#ffffffc9;border:1px solid #ffffffb9;border-radius:30px;padding:7px 14px;font-size:11px;color:#53514c;white-space:nowrap;pointer-events:none}
+.life-pad{position:fixed;z-index:25;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 94px);left:18px;display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(2,46px);gap:5px;touch-action:none}
+.life-pad button{border:1px solid #d6d4cf;background:#ffffffd9;backdrop-filter:blur(14px);border-radius:14px;font:19px Arial;color:#383735;touch-action:none;user-select:none;-webkit-user-select:none}
+.life-pad button:active{background:#c9d5ca}.life-pad .up{grid-column:2;grid-row:1}.life-pad .left{grid-column:1;grid-row:2}.life-pad .down{grid-column:2;grid-row:2}.life-pad .right{grid-column:3;grid-row:2}
+.life-action{position:fixed;z-index:25;right:16px;bottom:calc(max(18px,env(safe-area-inset-bottom)) + 107px);border:1px solid #d0d0c9;background:#fffffff0;border-radius:18px;padding:12px 17px;max-width:140px;font:13px 'Noto Serif JP',serif;color:#383735;box-shadow:0 5px 24px #22222218}
+.life-clock{position:fixed;z-index:25;right:15px;top:calc(max(14px,env(safe-area-inset-top)) + 73px);background:#fffffff0;padding:9px 12px;border-radius:14px;border:1px solid #ddd8d0;font:12px Arial,sans-serif;letter-spacing:.06em}
+body.life-mode .camera-dock,body.life-mode #editor,body.life-mode .actions,body.life-mode #status{display:none!important}
+body.life-mode #toggleEdit{display:none}body.life-mode .bottom{bottom:max(14px,env(safe-area-inset-bottom))}
+body.edit-mode .life-pad,body.edit-mode .life-action,body.edit-mode .life-clock{display:none!important}
+body.edit-mode .mode-help{display:none}
+body.life-mode .room-label{font-size:11px;padding:9px 12px}
+@media(min-width:900px){.mode-switch{top:23px;left:50%;transform:translateX(-50%)}.life-pad{display:none}.mode-help{bottom:26px}.life-action{bottom:65px}.life-clock{right:20px;top:95px}}
+@media(max-width:600px){.mode-switch{top:calc(max(14px,env(safe-area-inset-top)) + 61px)}body.life-mode .room-label{font-size:10px}.mode-help{bottom:calc(max(14px,env(safe-area-inset-bottom)) + 47px);font-size:10px}}
+</style>
+</head>
+<body>
+<div id="scene" role="application" aria-label="3Dルームビュー"></div>
+<div class="topbar"><div class="brand">ROOMVERSE <span class="version-stamp">v0.5.0</span></div><div class="actions"><button class="icon-btn" id="undo" aria-label="元に戻す" title="元に戻す">↶</button><button class="icon-btn" id="redo" aria-label="やり直す" title="やり直す">↷</button><button class="icon-btn" id="save" aria-label="保存" title="保存">⌑</button><button class="icon-btn" id="resetView" aria-label="カメラ初期化" title="視点を戻す">⌖</button></div></div>
+<div class="camera-dock"><button id="quickWindow" class="window-quick" aria-label="窓の景色を変更">◫ <span>景色</span></button><button id="focusWindow" aria-label="窓を見る">◉ <span>窓を見る</span></button><button id="cameraHome" aria-label="部屋全体に戻す">⌂ <span>HOME</span></button><button id="cameraTop" aria-label="真上から見る">▣ <span>TOP</span></button><button id="cameraZoomOut" aria-label="ズームアウト">− <span>OUT</span></button><button id="cameraZoomIn" aria-label="ズームイン">+ <span>IN</span></button></div>
+<nav class="mode-switch" aria-label="モード切り替え"><button id="lifeMode" class="active" aria-pressed="true">LIFE</button><button id="editMode" aria-pressed="false">EDIT</button></nav>
+<div class="life-clock" id="lifeClock">--:--</div><div class="mode-help" id="modeHelp">ドラッグで見渡す · 左下で移動</div>
+<div class="life-pad" id="lifePad" aria-label="移動操作"><button class="up" data-walk="forward" aria-label="前進">↑</button><button class="left" data-walk="left" aria-label="左へ">←</button><button class="down" data-walk="back" aria-label="後退">↓</button><button class="right" data-walk="right" aria-label="右へ">→</button></div>
+<button id="lifeAction" class="life-action" hidden>座る / 使う</button>
+<div class="hint" id="hint">空間をドラッグして回転 · ピンチでズーム</div><div class="status" id="status">ローカル保存</div><div class="toast" id="toast" role="status"></div>
+<div class="editor" id="editor"><div class="section-title"><span class="editor-title">ROOM EDITOR <span class="caption" id="selectionText">YOUR SPACE</span></span><span class="editor-top-right"><button class="drawer-toggle" id="expandPanel" title="パネルを拡大" aria-label="編集パネルを拡大">⤢</button><button class="drawer-toggle" id="collapsePanel" title="パネルをたたむ" aria-label="編集パネルを折りたたむ">⌄</button></span></div><div class="tabs"><button class="tab selected" data-tab="furniture">家具</button><button class="tab" data-tab="interior">内装</button><button class="tab" data-tab="lighting">照明</button><button class="tab" data-tab="window">景色</button></div><div id="panel"></div></div>
+<div class="bottom"><div class="room-label">MY FIRST ROOM</div><button class="primary" id="toggleEdit">EDIT</button></div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+const $=s=>document.querySelector(s), sceneHost=$('#scene');
+const scene=new THREE.Scene();scene.background=new THREE.Color('#e9e6e0');
+const camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.08,150); camera.position.set(11,8,14);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,innerWidth<700?1.5:1.85));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.22;sceneHost.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.075;controls.target.set(0,.9,0);controls.minDistance=3.6;controls.maxDistance=34;controls.enableZoom=true;controls.zoomSpeed=0.85;controls.touches={ONE:THREE.TOUCH.ROTATE,TWO:THREE.TOUCH.DOLLY_PAN};controls.maxPolarAngle=Math.PI/2-.04;controls.enablePan=true;controls.screenSpacePanning=false;controls.update();
+renderer.toneMappingExposure=1.08;scene.add(new THREE.HemisphereLight('#ffffff','#9f9991',1.55)); const sunlight=new THREE.DirectionalLight('#fff8ee',2.15);sunlight.position.set(-3,8,4);sunlight.castShadow=true;sunlight.shadow.mapSize.set(innerWidth<700?1024:2048,innerWidth<700?1024:2048);sunlight.shadow.camera.left=-11;sunlight.shadow.camera.right=11;sunlight.shadow.camera.top=11;sunlight.shadow.camera.bottom=-11;sunlight.shadow.bias=-.0006;sunlight.shadow.normalBias=.015;sunlight.shadow.radius=3;scene.add(sunlight);
+const indoor=new THREE.PointLight('#ffdbad',.5,13); indoor.position.set(0,2.4,0);scene.add(indoor);
+const mat=(color,roughness=.84,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness});
+function rounded(w,h,d,m,x,y,z,r=.07){let o=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,Math.min(r,w/5,h/5,d/5)),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;return o}
+function makeTex(kind){const c=document.createElement('canvas');c.width=c.height=512;const a=c.getContext('2d');if(kind==='tile'){a.fillStyle='#e4e2df';a.fillRect(0,0,512,512);for(let y=0;y<512;y+=128)for(let x=0;x<512;x+=128){a.fillStyle=(((x+y)/128)%2)?'#e7e5e2':'#f0eeeb';a.fillRect(x+2,y+2,124,124);a.strokeStyle='#c9c6c1';a.strokeRect(x+1,y+1,126,126)}for(let i=0;i<70;i++){a.strokeStyle='rgba(180,176,172,.13)';a.lineWidth=1;a.beginPath();let x=(i*173)%512,y=(i*71)%512;a.moveTo(x,y);a.lineTo(x+((i*13)%100)-50,y+((i*23)%40)-20);a.stroke()}}else{a.fillStyle='#c8b49a';a.fillRect(0,0,512,512);for(let x=0;x<512;x+=53){a.fillStyle=x%2?'#c3ac91':'#d0b99e';a.fillRect(x+2,0,51,512);for(let j=0;j<8;j++){a.strokeStyle='rgba(75,50,28,.12)';a.beginPath();a.moveTo(x+((j*7)%50),0);a.bezierCurveTo(x+3,190,x+50,320,x+((j*9)%50),512);a.stroke()}}}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(kind==='tile'?3:1,kind==='tile'?4:1);t.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);return t}
+
+// v0.4: compact procedural PBR-compatible textures. No remote furniture assets required.
+function surfaceTexture(kind){
+ const c=document.createElement('canvas');c.width=c.height=512;const ctx=c.getContext('2d');
+ const seed=(x,y)=>{const n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n)};
+ if(kind==='fabric'){
+  ctx.fillStyle='#e5e1da';ctx.fillRect(0,0,512,512);
+  for(let i=0;i<512;i+=3){ctx.strokeStyle='rgba(110,100,90,.09)';ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,512);ctx.stroke();ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(512,i);ctx.stroke()}
+  for(let i=0;i<1800;i++){const x=seed(i,4)*512,y=seed(i,7)*512;ctx.fillStyle=seed(i,9)>.5?'#ffffff12':'#726d630b';ctx.fillRect(x,y,1.7,1.7)}
+ } else if(kind==='marble'){
+  ctx.fillStyle='#eeeae3';ctx.fillRect(0,0,512,512);
+  for(let j=0;j<40;j++){const y=seed(j,1)*512;ctx.strokeStyle=j%3===0?'rgba(130,125,118,.24)':'rgba(145,142,135,.08)';ctx.lineWidth=j%4===0?2:.8;ctx.beginPath();ctx.moveTo(-40,y);for(let x=0;x<=560;x+=12){const k=Math.sin(x*.019+j)*15+Math.sin(x*.06+j*3)*4;ctx.lineTo(x,y+k+x*.15)}ctx.stroke()}
+ } else if(kind==='stone'){
+  ctx.fillStyle='#e9e6df';ctx.fillRect(0,0,512,512);
+  for(let i=0;i<7200;i++){const x=seed(i,3)*512,y=seed(i,7)*512;ctx.fillStyle=seed(i,8)>.52?'rgba(255,255,255,.13)':'rgba(79,76,70,.045)';ctx.fillRect(x,y,2,2)}
+ }else if(kind==='walnut'){
+  ctx.fillStyle='#b29c86';ctx.fillRect(0,0,512,512);
+  for(let j=0;j<95;j++){let x=seed(j,2)*512;ctx.strokeStyle=j%4===0?'rgba(64,40,20,.16)':'rgba(254,245,221,.15)';ctx.lineWidth=.5+seed(j,3)*2;ctx.beginPath();ctx.moveTo(x,0);ctx.bezierCurveTo(x-20,160,x+22,320,x+Math.sin(j)*8,512);ctx.stroke()}
+ }
+ const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;tex.wrapS=tex.wrapT=THREE.RepeatWrapping;tex.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);return tex;
+}
+const fabricTex=surfaceTexture('fabric'),marbleTex=surfaceTexture('marble'),stoneTex=surfaceTexture('stone'),walnutTex=surfaceTexture('walnut');
+function textile(color='#ffffff'){return new THREE.MeshStandardMaterial({color,map:fabricTex,roughness:1,metalness:0})}
+function woodPBR(color='#e6d2bb'){return new THREE.MeshStandardMaterial({color,map:walnutTex,roughness:.62})}
+function stonePBR(color='#ffffff'){return new THREE.MeshStandardMaterial({color,map:marbleTex,roughness:.28,metalness:.015})}
+function ceramic(color='#eee9e2'){return new THREE.MeshStandardMaterial({color,roughness:.26,metalness:.02})}
+function cylinder(rtop,rbot,h,m,x,y,z,seg=24){const o=new THREE.Mesh(new THREE.CylinderGeometry(rtop,rbot,h,seg),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;return o}
+const tileMap=makeTex('tile'), woodMap=makeTex('wood');
+function exteriorTexture(view){const c=document.createElement('canvas');c.width=1024;c.height=512;const g=c.getContext('2d');const pal={cityday:['#a6d2eb','#f4f1e9','#8b959d'],citynight:['#14243a','#596b89','#202c3f'],sunset:['#e7a98d','#f9dabb','#695970'],forest:['#9bc4ad','#e5ebd6','#507c59'],ocean:['#89c7e1','#dae9e5','#2d83a8'],rainy:['#8395a2','#d3d6d4','#6f7b84']}[view]||['#a6d2eb','#f4f1e9','#8b959d'];let grad=g.createLinearGradient(0,0,0,512);grad.addColorStop(0,pal[0]);grad.addColorStop(.62,pal[1]);grad.addColorStop(1,pal[2]);g.fillStyle=grad;g.fillRect(0,0,1024,512);if(['cityday','citynight','sunset','rainy'].includes(view)){for(let i=0;i<62;i++){const x=i*19-10,h=42+(i*37)%148;g.fillStyle=view==='citynight'?['#273345','#35435c','#1b2a3b'][i%3]:['#aab3b4','#8e9ca4','#bac0bd'][i%3];g.fillRect(x,385-h,16+((i*5)%14),h);for(let wx=x+4;wx<x+16;wx+=6)for(let wy=390-h+8;wy<380;wy+=13){g.fillStyle=view==='citynight'&&((wx*wy)%3)?'#edcb90':'#e5e6de';g.globalAlpha=view==='citynight'?.85:.18;g.fillRect(wx,wy,2,4);g.globalAlpha=1}}}else if(view==='forest'){for(let j=0;j<70;j++){let x=j*17,hh=90+(j*73)%160;g.fillStyle=j%3===0?'#385b48':'#60836a';g.beginPath();g.moveTo(x,380-hh);g.lineTo(x-40,399);g.lineTo(x+44,399);g.fill()}}else if(view==='ocean'){g.fillStyle='#4e9cb8';g.fillRect(0,320,1024,192);for(let i=0;i<80;i++){g.strokeStyle='rgba(255,255,255,.35)';g.beginPath();g.moveTo((i*79)%1024,341+(i*37)%153);g.lineTo((i*79)%1024+20,341+(i*37)%153);g.stroke()}}if(view==='rainy'){for(let i=0;i<130;i++){g.strokeStyle='rgba(235,241,242,.28)';g.beginPath();g.moveTo((i*87)%1024,(i*39)%512);g.lineTo((i*87)%1024-6,(i*39)%512+32);g.stroke()}}let t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t}
+ const quartz=mat('#f1eee8'),oak=mat('#b8a18a'),side=mat('#ded8cf');
+function box(w,h,d,m,x,y,z,cast=true){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=cast;o.receiveShadow=true;return o}
+const room=new THREE.Group();scene.add(room);
+const floor=box(6,.16,8,oak,0,-.08,0,false);room.add(floor);
+const back=box(6,.50,.13,quartz,0,.25,-4,false);room.add(back);
+room.add(box(6,.50,.13,quartz,0,2.55,-4,false));
+room.add(box(1.12,1.8,.13,quartz,-2.44,1.4,-4,false));room.add(box(1.12,1.8,.13,quartz,2.44,1.4,-4,false));
+const left=box(.13,2.8,8,quartz,-3,1.4,0,false);room.add(left);
+const ceiling=box(6,.06,8,mat('#f8f7f4'),0,2.83,0,false);ceiling.visible=false;room.add(ceiling);
+const trim=mat('#e5e3e0');room.add(box(6,.065,.09,trim,0,.06,-3.88,false));room.add(box(.09,.065,8,trim,-2.88,.06,0,false));
+for(const x of [-1.88,0,1.88])room.add(box(.055,1.85,.08,mat('#bdbdbb',.28,.65),x,1.4,-3.88,false));
+room.add(box(3.8,.055,.09,mat('#bebeba',.28,.5),0,2.31,-3.88,false));room.add(box(3.8,.07,.12,mat('#e5e2df'),0,.48,-3.88,false));
+const outdoor=new THREE.Mesh(new THREE.PlaneGeometry(4.75,2.4),new THREE.MeshBasicMaterial({map:exteriorTexture('cityday'),side:THREE.DoubleSide}));outdoor.position.set(0,1.4,-4.08);room.add(outdoor);
+const glass=new THREE.Mesh(new THREE.PlaneGeometry(3.75,1.82),new THREE.MeshPhysicalMaterial({color:'#d7e5ea',metalness:0,roughness:.08,transparent:true,opacity:.10,depthWrite:false,side:THREE.DoubleSide}));glass.position.set(0,1.42,-3.78);room.add(glass);
+const tv=box(.055,.95,1.5,mat('#17191c',.22,.15),-2.86,1.65,-1.4,false);room.add(tv);tv.visible=false;
+const tvScreen=box(.028,.84,1.37,mat('#303538',.23,.12),-2.81,1.65,-1.4,false);room.add(tvScreen);tvScreen.visible=false;
+room.add(rounded(.48,.47,1.7,mat('#c5c0b8',.5),-2.64,.29,-1.4,.025));
+for(let x=-2.5;x<2.6;x+=1.15)for(let z=-3.55;z<3.8;z+=1.35){const inset=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.008,16),new THREE.MeshBasicMaterial({color:'#e7dac0'}));inset.position.set(x,2.79,z);room.add(inset)}
+const accent=box(.02,2.25,1.7,mat('#5e5d5b',.94),-2.92,1.42,-1.45,false);accent.visible=false;room.add(accent);
+// v0.4 architectural details, kept separate from editable objects.
+const ivoryPaint=mat('#f4f1ea',.92), shadowTrim=mat('#d0cbc3',.78),bronzeNeutral=mat('#7f817e',.48,.25);
+// Four-sided window frame; previous exterior switching remains compatible.
+room.add(box(3.92,.09,.14,ivoryPaint,0,2.34,-3.77,false));
+room.add(box(3.92,.13,.18,ivoryPaint,0,.46,-3.75,false));
+room.add(box(.09,1.83,.16,ivoryPaint,-1.91,1.42,-3.74,false));
+room.add(box(.09,1.83,.16,ivoryPaint,1.91,1.42,-3.74,false));
+// Low-profile ceiling light elements, no broad opaque slab that would obscure editing.
+for(const x of [-1.45,1.45]) for(const z of [-2.7,2.25]){
+ const ring=cylinder(.092,.092,.012,mat('#cbc8c2',.45),x,2.785,z,20);room.add(ring);
+ const lightDisc=cylinder(.060,.060,.014,new THREE.MeshStandardMaterial({color:'#fff4df',emissive:'#ffe8be',emissiveIntensity:.36,roughness:.8}),x,2.793,z,20);room.add(lightDisc);
+}
+// Discrete skirting and wall finish details.
+room.add(box(6,.11,.025,ivoryPaint,0,.065,-3.905,false));
+room.add(box(.025,.11,7.8,ivoryPaint,-2.91,.065,0,false));
+const galleryPanel=box(.035,1.75,1.26,mat('#e1ded8',.83),-2.915,1.52,1.35,false);room.add(galleryPanel);
+// A quiet wall sconce, neutral rather than gold.
+room.add(rounded(.045,.45,.23,bronzeNeutral,-2.85,1.73,2.3,.018));
+room.add(rounded(.035,.24,.13,new THREE.MeshStandardMaterial({color:'#f9f4e8',emissive:'#f9e4c8',emissiveIntensity:.25}),-2.81,1.74,2.3,.015));
+
+function createFurniture(type){
+ const g=new THREE.Group();g.userData.type=type;
+ const linen=textile('#f9f7f4'),warmFabric=textile('#eee8df'),darkFabric=textile('#cdc7bf');
+ const ash=woodPBR('#e2d6c9'), darkWood=woodPBR('#938175'),steel=mat('#606361',.4,.3),
+       marble=stonePBR('#f8f6f2'),ceram=ceramic('#ded8cf');
+ function put(x){g.add(x);return x}
+ if(type==='sofa'){
+  // Three cushion sofa with soft rolled edges, piping and discreet feet.
+  put(rounded(2.12,.27,.94,warmFabric,0,.43,0,.095));
+  put(rounded(2.13,.66,.23,warmFabric,0,.68,-.42,.095));
+  for(const x of [-.74,0,.74]){
+   put(rounded(.66,.19,.76,linen,x,.62,.055,.075));
+   put(rounded(.61,.51,.17,linen,x,.83,-.38,.058));
+  }
+  for(const x of [-1.04,1.04]){
+   put(rounded(.21,.43,.91,darkFabric,x,.51,0,.08));
+   for(const z of [-.33,.32])put(rounded(.10,.13,.11,darkWood,x,.14,z,.018));
+  }
+  // Subtle textile pillows, retained in the furniture group for move/delete.
+  const a=put(rounded(.28,.30,.11,textile('#c4d0c7'),-.7,.82,-.25,.05));a.rotation.z=-.21;
+  const b=put(rounded(.26,.28,.10,textile('#dbd0c0'),.72,.84,-.26,.05));b.rotation.z=.2;
+ } else if(type==='table'){
+  put(rounded(1.24,.085,.72,marble,0,.47,0,.032));
+  put(rounded(1.05,.055,.57,ash,0,.35,0,.02));
+  for(const x of [-.51,.51])for(const z of [-.24,.24])put(rounded(.047,.41,.047,steel,x,.22,z,.008));
+  put(cylinder(.082,.085,.115,ceram,.24,.59,-.08));
+ } else if(type==='plant'){
+  put(cylinder(.20,.145,.39,ceram,0,.20,0,24));
+  put(cylinder(.17,.17,.025,mat('#756b5c'),0,.405,0));
+  put(cylinder(.022,.038,.72,mat('#796954'),0,.77,0,12));
+  const leafMats=[new THREE.MeshStandardMaterial({color:'#416e4a',side:THREE.DoubleSide,roughness:.77}),new THREE.MeshStandardMaterial({color:'#628f5d',side:THREE.DoubleSide,roughness:.8}),new THREE.MeshStandardMaterial({color:'#315b43',side:THREE.DoubleSide,roughness:.76})];
+  function blade(length,width,variant){
+   const N=14,verts=[],indices=[],colors=[];
+   for(let i=0;i<=N;i++){
+     const t=i/N, ww=Math.pow(Math.sin(Math.PI*t),.82)*width;
+     for(const sign of [-1,1]){
+       const x=sign*ww*(1+Math.sin(t*10+variant)*.035),y=.09*Math.sin(Math.PI*t)+Math.sin(t*9+variant)*.007,z=t*length;
+       verts.push(x,y,z);colors.push(1,1,1);
+     }
+   }
+   for(let i=0;i<N;i++){const j=i*2;indices.push(j,j+1,j+2,j+1,j+3,j+2)}
+   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setIndex(indices);geo.computeVertexNormals();return geo;
+  }
+  for(let k=0;k<23;k++){
+    const angle=k*2.39996, level=k/23;
+    const stalkLength=.28+.33*(1-level);
+    const height=.55+.48*level;
+    const stem=put(cylinder(.007,.015,stalkLength,mat('#527148',.9),Math.cos(angle)*.07,height,Math.sin(angle)*.07,6));
+    stem.rotation.z=.18*Math.cos(angle);
+    const leaf=new THREE.Mesh(blade(.28+.23*(1-level),.065+.045*(1-level),k),leafMats[k%3]);
+    leaf.position.set(Math.cos(angle)*(.11+.18*(1-level)),height+stalkLength*.43,Math.sin(angle)*(.11+.18*(1-level)));
+    leaf.rotation.y=angle;leaf.rotation.x=-.28-.34*(1-level);leaf.rotation.z=Math.sin(k*4.7)*.11;
+    leaf.castShadow=true;leaf.receiveShadow=true;put(leaf);
+    const midrib=put(box(.003,.004,.23,mat('#8aac78',.9),leaf.position.x,leaf.position.y+.012,leaf.position.z+.13));midrib.rotation.y=angle;
+  }
+ } else if(type==='bed'){
+  put(rounded(1.78,.23,2.28,ash,0,.28,0,.055));
+  put(rounded(1.64,.18,2.12,linen,0,.49,.02,.05));
+  put(rounded(1.8,.89,.14,warmFabric,0,.66,-1.12,.045));
+  put(rounded(1.62,.075,1.21,textile('#d2d0cb'),0,.62,.41,.03));
+  put(rounded(1.62,.065,.42,textile('#c4c6c3'),0,.63,.80,.03));
+  // Contoured fabric surface: uneven folds instead of one flat box.
+  const cols=18,rows=24,v=[],uv=[],faces=[];
+  for(let z=0;z<=rows;z++)for(let x=0;x<=cols;x++){
+    const tx=x/cols,tz=z/rows;
+    const fold=Math.sin(tx*23+tz*5)*.024+Math.sin(tz*17+tx*3)*.021;
+    v.push((tx-.5)*1.57,.687+fold+Math.sin(Math.PI*tx)*.025,(-.12+tz*1.13));uv.push(tx,tz);
+  }
+  for(let z=0;z<rows;z++)for(let x=0;x<cols;x++){let a=z*(cols+1)+x,b=a+cols+1;faces.push(a,b,a+1,a+1,b,b+1)}
+  const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(v,3));geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));geo.setIndex(faces);geo.computeVertexNormals();
+  const duvet=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:'#c4c8bf',roughness:1,side:THREE.DoubleSide,map:fabricTex}));duvet.castShadow=true;put(duvet);
+
+  for(const x of [-.42,.42]){
+   const pillow=put(rounded(.7,.13,.39,linen,x,.67,-.70,.07));pillow.rotation.z=x>0?.045:-.045;
+  }
+  for(const x of [-.72,.72])for(const z of [-.93,.93])put(rounded(.075,.13,.075,darkWood,x,.10,z,.012));
+ }else if(type==='desk'){
+  put(rounded(1.7,.09,.77,ash,0,.75,0,.025));
+  for(const x of [-.73,.73])for(const z of [-.30,.30])put(box(.055,.72,.055,steel,x,.38,z));
+  put(rounded(.76,.46,.036,mat('#30363a',.21,.1),0,1.09,-.21,.012));
+  put(rounded(.67,.36,.019,new THREE.MeshBasicMaterial({color:'#b7c7c9'}),0,1.09,-.183,.007));
+  put(box(.04,.2,.04,steel,0,.81,-.19));
+  put(rounded(.51,.015,.17,mat('#dedbd7'),0,.82,.15,.008));
+ }else if(type==='chair'){
+  put(rounded(.62,.15,.63,linen,0,.49,0,.052));
+  put(rounded(.64,.66,.13,warmFabric,0,.85,-.27,.048));
+  for(const x of [-.24,.24])for(const z of [-.23,.23])put(rounded(.045,.47,.045,darkWood,x,.24,z,.009));
+  for(const x of [-.31,.31])put(rounded(.06,.21,.45,ash,x,.64,-.02,.016));
+ }else if(type==='lamp'){
+  put(cylinder(.23,.25,.06,steel,0,.036,0));
+  put(cylinder(.019,.024,1.53,steel,0,.79,0,12));
+  put(cylinder(.29,.19,.36,linen,0,1.65,0,28));
+  put(cylinder(.17,.17,.015,new THREE.MeshStandardMaterial({color:'#fff1da',emissive:'#ffe2ae',emissiveIntensity:.4}),0,1.48,0));
+ }else if(type==='cabinet'){
+  put(rounded(1.49,.63,.50,darkWood,0,.47,0,.027));
+  put(rounded(1.54,.07,.54,marble,0,.82,0,.018));
+  for(const x of [-.36,.36]){
+   put(rounded(.68,.45,.024,ash,x,.48,.27,.012));
+   put(rounded(.13,.015,.018,steel,x,.49,.29,.004));
+  }
+  for(const x of [-.58,.58])put(box(.065,.16,.065,steel,x,.085,0));
+ }else if(type==='rug'){
+  const rug=new THREE.Mesh(new THREE.PlaneGeometry(2.36,1.56),textile('#ece9e3'));rug.rotation.x=-Math.PI/2;rug.position.y=.013;rug.receiveShadow=true;put(rug);
+  for(let i=-5;i<=5;i++){put(box(2.27,.003,.006,mat('#c5c2b9',1),0,.018,i*.12))}
+ }else if(type==='art'){
+  put(rounded(1.05,.91,.05,darkWood,0,1.28,0,.012));
+  const canvas=put(box(.96,.82,.012,mat('#e8e6e1',1),0,1.28,.038));
+  const a=put(rounded(.65,.55,.006,mat('#b1bbb0',1),-.09,1.30,.048,.004));a.rotation.z=-.1;
+  const b=put(rounded(.44,.25,.007,mat('#d7c1aa',1),.15,1.09,.055,.004));b.rotation.z=.23;
+ }
+ g.traverse(o=>{if(o.isMesh){o.castShadow=type!=='rug';o.receiveShadow=true}});return g;
+}
+const objects=[];let timeMode='real',customHour=16,lifeLightOn=true,sceneCategory='ocean';const defaults=[{id:1,type:'sofa',x:-.85,z:-1.45,r:0},{id:2,type:'table',x:-.65,z:.17,r:0},{id:3,type:'plant',x:1.65,z:-2.75,r:0}];
+let nextId=4,selection=null,editing=false,tab='furniture',moveMode=false,dragging=false,oldDrag=null,undoStack=[],redoStack=[],lightStrength=60,wallName='quartz',floorName='oak',timeOfDay='day',windowView='cityday',panelExpanded=false,panelCollapsed=false;
+// Keep all saved furniture inside walls, accounting for actual rotated dimensions.
+function worldBox(group){group.updateMatrixWorld(true);return new THREE.Box3().setFromObject(group)}
+function keepInside(group){
+  const b=worldBox(group); if(b.isEmpty())return;
+  const pad=.13, minX=-2.93+pad,maxX=2.93-pad,minZ=-3.93+pad,maxZ=3.93-pad;
+  const halfX=(b.max.x-b.min.x)/2,halfZ=(b.max.z-b.min.z)/2;
+  const cx=(b.min.x+b.max.x)/2,cz=(b.min.z+b.max.z)/2;
+  const destX=THREE.MathUtils.clamp(cx,minX+halfX,maxX-halfX),destZ=THREE.MathUtils.clamp(cz,minZ+halfZ,maxZ-halfZ);
+  group.position.x+=destX-cx;group.position.z+=destZ-cz;
+  group.updateMatrixWorld(true);
+}
+function overlapsFurniture(a,b){
+ if(a===b||['rug','art'].includes(a.userData.type)||['rug','art'].includes(b.userData.type))return false;
+ const aa=worldBox(a),bb=worldBox(b);const pad=.025;
+ return aa.min.x<bb.max.x-pad&&aa.max.x>bb.min.x+pad&&aa.min.z<bb.max.z-pad&&aa.max.z>bb.min.z+pad;
+}
+function freeSpot(group){
+ keepInside(group);
+ if(!objects.some(o=>overlapsFurniture(o,group)))return true;
+ const initialX=group.position.x,initialZ=group.position.z;
+ for(let radius=.5;radius<=5.2;radius+=.5){
+   for(let a=0;a<24;a++){
+    const angle=a*Math.PI/12;group.position.set(initialX+Math.cos(angle)*radius,0,initialZ+Math.sin(angle)*radius);keepInside(group);
+    if(!objects.some(o=>overlapsFurniture(o,group)))return true;
+   }
+ }
+ group.position.set(initialX,0,initialZ);keepInside(group);return false;
+}
+function removeFurniture(target){if(!target)return; snapshot();scene.remove(target);objects.splice(objects.indexOf(target),1);if(selection===target){selection=null;moveMode=false}renderPanel();scheduleSave();notify('家具を削除しました。元に戻すこともできます')}
+function repairLayout(){snapshot();let moved=0;const ordered=[];
+ for(const o of objects){const before=o.position.clone();keepInside(o);
+   if(ordered.some(other=>overlapsFurniture(o,other))){
+     const x=o.position.x,z=o.position.z;let fixed=false;
+     for(let r=.45;r<=6&&!fixed;r+=.45)for(let a=0;a<32&&!fixed;a++){
+       const angle=a*Math.PI/16;o.position.set(x+r*Math.cos(angle),0,z+r*Math.sin(angle));keepInside(o);
+       if(!ordered.some(other=>overlapsFurniture(o,other)))fixed=true;
+     }
+     if(!fixed){o.position.set(x,0,z);keepInside(o)}
+   }
+   if(before.distanceTo(o.position)>.01)moved++;ordered.push(o)
+ }
+ renderPanel();scheduleSave();notify(moved+'件の位置を補正しました。元に戻すこともできます')}
+
+function addObject(data){const g=createFurniture(data.type);g.userData.id=data.id;g.position.set(data.x,0,data.z);g.rotation.y=data.r||0;scene.add(g);objects.push(g);keepInside(g);return g}
+function serialize(){return{objects:objects.map(o=>({id:o.userData.id,type:o.userData.type,x:Number(o.position.x.toFixed(3)),z:Number(o.position.z.toFixed(3)),r:Number(o.rotation.y.toFixed(3))})),lightStrength,wallName,floorName,timeOfDay,windowView,timeMode,customHour,sceneCategory}}
+function apply(data){for(const o of objects)scene.remove(o);objects.length=0;for(const d of data.objects||defaults)addObject(d);nextId=Math.max(4,...objects.map(o=>o.userData.id+1));lightStrength=data.lightStrength??60;wallName=data.wallName||'quartz';floorName=data.floorName||'oak';timeOfDay=data.timeOfDay||'day';windowView=data.windowView||'cityday';timeMode=data.timeMode||'real';customHour=data.customHour??16;sceneCategory=data.sceneCategory||(['ocean','forest'].includes(windowView)?windowView:'city');refreshClock();applyMaterials();selection=null;renderPanel()}
+function applyMaterials(){const actualHour=timeMode==='real'?new Date().getHours():Number(customHour);timeOfDay=actualHour<6||actualHour>=19?'night':actualHour>=16?'sunset':'day';windowView=sceneCategory==='city'?(timeOfDay==='night'?'citynight':timeOfDay==='sunset'?'sunset':'cityday'):sceneCategory;const walls={quartz:'#f1eee8',ivory:'#e1d8cd',stone:'#d3d1cb',linen:'#f9f7f1',concrete:'#b8b8b4'};const floors={oak:'#b8a18a',light:'#d9c9b7',stone:'#d1d1cc',walnut:'#786252',quartz:'#e8e4dd'};quartz.color.set(walls[wallName]||walls.quartz);quartz.map=stoneTex;quartz.needsUpdate=true;oak.color.set(floors[floorName]||floors.oak);if(oak.map){oak.map=null}oak.color.set(floors[floorName]||floors.oak);if(['quartz','stone'].includes(floorName)){oak.map=marbleTex;oak.color.set(floorName==='quartz'?'#ffffff':'#e9e8e5');oak.roughness=.27;oak.metalness=.02}else if(['oak','light','walnut'].includes(floorName)){oak.map=walnutTex;oak.color.set(floorName==='walnut'?'#8b7867':'#e5d2b8');oak.roughness=.64;oak.metalness=0}oak.needsUpdate=true;outdoor.material.map?.dispose();outdoor.material.map=exteriorTexture(windowView);outdoor.material.needsUpdate=true;const intensity={day:1,sunset:.56,night:.13}[timeOfDay]||1;indoor.intensity=lightStrength/100*(timeOfDay==='night'?2.8:1.25);sunlight.intensity=(.9+lightStrength/100*1.8)*intensity;sunlight.color.set(timeOfDay==='sunset'?'#ffd2aa':timeOfDay==='night'?'#afc2db':'#fff6e9');scene.background.set(timeOfDay==='night'?'#a8aab0':timeOfDay==='sunset'?'#e5d3c2':'#e8e4dd');sunlight.intensity*=windowView==='citynight'?.2:windowView==='rainy'?.55:1;indoor.intensity+=windowView==='citynight'?.7:0;if(!lifeLightOn)indoor.intensity=0;}
+function snapshot(){undoStack.push(JSON.stringify(serialize()));if(undoStack.length>60)undoStack.shift();redoStack=[];refreshUndo()}
+function restore(stackFrom,stackTo){if(!stackFrom.length)return;stackTo.push(JSON.stringify(serialize()));apply(JSON.parse(stackFrom.pop()));refreshUndo();scheduleSave()}
+function refreshUndo(){$('#undo').disabled=!undoStack.length;$('#redo').disabled=!redoStack.length}
+let saveTimer;function scheduleSave(){$('#status').textContent='未保存の変更';clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,950)}
+function saveNow(){try{
+ const data=JSON.stringify(serialize());const key='roomverse-prototype-v3',previous=localStorage.getItem(key);
+ if(previous&&previous!==data){let history=JSON.parse(localStorage.getItem('roomverse-history-v032')||'[]');
+   if(history.at(-1)?.data!==previous){history.push({at:new Date().toISOString(),data:previous});history=history.slice(-15);localStorage.setItem('roomverse-history-v032',JSON.stringify(history));}}
+ localStorage.setItem(key,data);$('#status').textContent='この端末に保存済み';notify('保存しました（過去15件まで復元可能）');
+}catch(e){$('#status').textContent='保存に失敗しました';notify('保存容量などを確認してください')}}
+function exportRoom(){const data=JSON.stringify(serialize(),null,2);const file=new Blob([data],{type:'application/json'});const url=URL.createObjectURL(file);const link=document.createElement('a');link.href=url;link.download='roomverse-room-backup.json';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);notify('バックアップファイルを出力しました')}
+function restoreBackup(){const sel=$('#historySelect');if(!sel||!sel.value)return;let history=JSON.parse(localStorage.getItem('roomverse-history-v032')||'[]');let item=history[Number(sel.value)];if(!item)return;
+ if(!confirm('選択した時点の配置に戻しますか？現在の配置は履歴に保存されます。'))return;
+ snapshot();const current=localStorage.getItem('roomverse-prototype-v3');if(current){history.push({at:new Date().toISOString(),data:current});localStorage.setItem('roomverse-history-v032',JSON.stringify(history.slice(-15)))}
+ apply(JSON.parse(item.data));scheduleSave();notify('保存履歴から復元しました');}
+
+let toastTimer;function notify(t){$('#toast').textContent=t;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),1700)}
+function selectObject(o){selection=o;renderPanel();highlight()}
+const selectionMat=mat('#7d9789');function highlight(){objects.forEach(o=>o.traverse(child=>{if(child.isMesh&&child.userData.outline){o.remove(child)}}))}
+const names={sofa:'ソファ',table:'テーブル',plant:'観葉植物',bed:'ベッド',desk:'デスク',chair:'チェア',lamp:'フロアライト',cabinet:'キャビネット',rug:'ラグ',art:'アート'};
+function furniturePanel(){
+ const rows=objects.map(o=>`<div class="object-entry ${selection===o?'active':''}"><button class="object-pick" data-pick="${o.userData.id}">${names[o.userData.type]||o.userData.type} · ID ${o.userData.id}</button><button class="object-remove" data-remove="${o.userData.id}" aria-label="ID ${o.userData.id} を削除">削除</button></div>`).join('');
+ const history=JSON.parse(localStorage.getItem('roomverse-history-v032')||'[]');
+ return `<div class="tools">${[['sofa','▱'],['table','▤'],['plant','♧'],['bed','▥'],['desk','▱'],['chair','♙'],['lamp','☼'],['cabinet','▤'],['rug','▭'],['art','▣']].map(([id,icon])=>`<button class="tool" data-add="${id}"><em>${icon}</em>${names[id]}を追加</button>`).join('')}</div>
+ <div class="safe-toolbar"><button class="small strong" id="showObjects">配置一覧を表示（${objects.length}件）</button><button class="small" id="repair">重なり・貫通を整理</button></div>
+ <div id="objectSection" style="display:none"><p class="field-note">家具を一覧から選択・削除できます。保存済みの配置も編集可能です。</p><div class="object-list">${rows||'<p class="field-note">配置された家具はありません</p>'}</div></div>
+ ${selection?`<div style="height:8px"></div><div class="row"><b style="font-size:12px">選択中：${names[selection.userData.type]}</b><span class="caption">ID ${selection.userData.id}</span></div><div class="sub-actions"><button class="small ${moveMode?'active':''}" id="move">${moveMode?'✓ 移動中':'⇄ 移動'}</button><button class="small" id="rotateL">↶ 左回転</button><button class="small" id="rotateR">↷ 右回転</button><button class="small" id="duplicate">⊕ 複製</button><button class="small danger" id="delete">この家具を削除</button></div><p class="caption panel-note">家具は一覧からも選べます。移動はボタンを押してから。</p>`:`<p class="caption panel-note">家具を追加するか「配置一覧」を開いて選択。</p>`}
+ <div class="history-controls"><button class="small" id="exportRoom">現在の部屋をバックアップ</button><div class="caption">保存履歴（最大15件）</div><div class="field"><select id="historySelect" aria-label="保存履歴"><option value="">復元する履歴を選択</option>${history.map((h,i)=>`<option value="${i}">${new Date(h.at).toLocaleString('ja-JP')}</option>`).join('')}</select><button id="restoreHistory" class="small">復元</button></div><button class="small" id="restoreOriginal">v0.3.1以前の配置へ戻す</button><p class="field-note">以前のバージョンで上書きされた履歴は復元できません。現在の配置は引き継ぎます。</p></div>`;
+}
+function interiorPanel(){return `<div class="field"><label>壁材</label><select id="wall"><option value="quartz" ${wallName==='quartz'?'selected':''}>QUARTZ WHITE</option><option value="linen" ${wallName==='linen'?'selected':''}>LINEN WHITE</option><option value="ivory" ${wallName==='ivory'?'selected':''}>WARM IVORY</option><option value="stone" ${wallName==='stone'?'selected':''}>STONE GRAY</option><option value="concrete" ${wallName==='concrete'?'selected':''}>SOFT CONCRETE</option></select></div><div class="field"><label>床材</label><select id="floor"><option value="oak" ${floorName==='oak'?'selected':''}>NATURAL OAK</option><option value="light" ${floorName==='light'?'selected':''}>LIGHT WOOD</option><option value="stone" ${floorName==='stone'?'selected':''}>LIGHT STONE</option><option value="walnut" ${floorName==='walnut'?'selected':''}>WALNUT</option><option value="quartz" ${floorName==='quartz'?'selected':''}>QUARTZ</option></select></div>`}
+function lightingPanel(){return `<div class="caption">光の時間帯</div><div class="setting-row">${[['day','DAY'],['sunset','SUNSET'],['night','NIGHT']].map(([id,t])=>`<button class="setting-chip ${timeOfDay===id?'selected':''}" data-time="${id}">${t}</button>`).join('')}</div><div class="field"><label>明るさ：<span id="lightValue">${lightStrength}%</span></label><input id="light" type="range" min="10" max="100" value="${lightStrength}"/></div><p class="caption panel-note">昼・夕方・夜と室内の明るさを調整。</p>`}
+function windowPanel(){return `<div class="caption">WINDOW VIEW · 窓の外を変更</div><div class="field"><label>時間設定</label><select id="timeMode"><option value="real" ${timeMode==='real'?'selected':''}>現実の時刻に同期</option><option value="manual" ${timeMode==='manual'?'selected':''}>時間を指定</option></select></div>${timeMode==='manual'?`<div class="field"><label>時刻 <span id="hourText">${String(customHour).padStart(2,'0')}:00</span></label><input type="range" id="customHour" min="0" max="23" value="${customHour}"/></div>`:''}<div class="window-options">${[['cityday','CITY DAY','街・昼'],['citynight','CITY NIGHT','街・夜'],['sunset','SUNSET','夕焼け'],['forest','FOREST','森林'],['ocean','OCEAN','海'],['rainy','RAINY','雨']].map(([id,en,ja])=>`<button class="window-option ${windowView===id?'selected':''}" data-window="${id}">${ja}<small>${en}</small></button>`).join('')}</div><button class="window-corner" id="lookAtWindow">◉ 窓の方向を見る</button><p class="window-hint">室内の奥の壁に窓があります。景色を押すと切り替わります。</p>`}
+function renderPanel(){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('selected',e.dataset.tab===tab));$('#selectionText').textContent=selection?'OBJECT SELECTED':'YOUR SPACE';$('#panel').innerHTML=tab==='furniture'?furniturePanel():tab==='interior'?interiorPanel():tab==='lighting'?lightingPanel():windowPanel();if(tab==='furniture'){
+ const section=$('#objectSection');$('#showObjects').onclick=()=>{section.style.display=section.style.display==='none'?'block':'none'; if(section.style.display==='block'){panelExpanded=true;panelCollapsed=false;updateDrawer()}};
+ $('#repair').onclick=repairLayout;
+ document.querySelectorAll('[data-pick]').forEach(b=>b.onclick=()=>{const target=objects.find(o=>o.userData.id===Number(b.dataset.pick));if(target){selectObject(target);panelExpanded=true;updateDrawer();}});
+ document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{const target=objects.find(o=>o.userData.id===Number(b.dataset.remove));if(target)removeFurniture(target)});
+ $('#restoreHistory').onclick=restoreBackup;$('#exportRoom').onclick=exportRoom;$('#restoreOriginal').onclick=()=>{const original=localStorage.getItem('roomverse-pre032-original');if(!original){notify('以前の保存データは見つかりません');return}if(confirm('アップデート時点の配置に戻しますか？')){snapshot();apply(JSON.parse(original));scheduleSave();notify('アップデート前の配置に戻しました')}};
+ }
+ $('#panel').querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>{snapshot();const item=addObject({id:nextId++,type:b.dataset.add,x:0,z:.9,r:0});freeSpot(item);selectObject(item);moveMode=true;scheduleSave();notify('家具を追加しました。移動モードです')});if(selection&&tab==='furniture'){$('#move').onclick=()=>{moveMode=!moveMode;renderPanel()};$('#rotateL').onclick=()=>{snapshot();selection.rotation.y-=Math.PI/12;keepInside(selection);renderPanel();scheduleSave()};$('#rotateR').onclick=()=>{snapshot();selection.rotation.y+=Math.PI/12;keepInside(selection);renderPanel();scheduleSave()};$('#duplicate').onclick=()=>{snapshot();const item=addObject({...serialize().objects.find(o=>o.id===selection.userData.id),id:nextId++,x:Math.min(2.25,selection.position.x+.5),z:Math.min(3.25,selection.position.z+.5)});freeSpot(item);selectObject(item);scheduleSave()};$('#delete').onclick=()=>removeFurniture(selection)}if(tab==='interior'){for(const [key,prop] of [['wall','wallName'],['floor','floorName']]){$('#'+key).onchange=e=>{snapshot();if(prop==='wallName')wallName=e.target.value;else floorName=e.target.value;applyMaterials();scheduleSave()}}}if(tab==='window'){$('#timeMode').onchange=e=>{snapshot();timeMode=e.target.value;applyMaterials();renderPanel();scheduleSave();refreshClock()};if($('#customHour'))$('#customHour').oninput=e=>{customHour=Number(e.target.value);$('#hourText').textContent=String(customHour).padStart(2,'0')+':00';applyMaterials();scheduleSave();refreshClock()};$('#lookAtWindow').onclick=focusWindow;document.querySelectorAll('[data-window]').forEach(b=>b.onclick=()=>{snapshot();windowView=b.dataset.window;sceneCategory=['cityday','citynight','sunset'].includes(windowView)?'city':windowView;if(windowView==='citynight'||windowView==='sunset'){timeMode='manual';customHour=windowView==='citynight'?21:17;}applyMaterials();renderPanel();scheduleSave();notify('窓の景色を変更しました')})}if(tab==='lighting'){document.querySelectorAll('[data-time]').forEach(b=>b.onclick=()=>{snapshot();timeMode='manual';customHour=b.dataset.time==='night'?21:b.dataset.time==='sunset'?17:12;applyMaterials();renderPanel();scheduleSave()});$('#light').onpointerdown=()=>snapshot();$('#light').oninput=e=>{lightStrength=Number(e.target.value);$('#lightValue').textContent=lightStrength+'%';applyMaterials();scheduleSave()}}}
+let pointerStart=null;const raycaster=new THREE.Raycaster(),mouse=new THREE.Vector2(),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0);function getRay(e){const b=renderer.domElement.getBoundingClientRect();mouse.set((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1);raycaster.setFromCamera(mouse,camera)}
+function hitObject(e){getRay(e);const hit=raycaster.intersectObjects(objects,true)[0];if(!hit)return null;let o=hit.object;while(o.parent&&!o.userData.id)o=o.parent;return o.userData.id?o:null}
+renderer.domElement.addEventListener('pointerdown',e=>{if(!editing||e.button!==0||!e.isPrimary)return;pointerStart={x:e.clientX,y:e.clientY};const hit=hitObject(e);if(hit){selectObject(hit);if(moveMode){e.preventDefault();snapshot();dragging=true;oldDrag={x:hit.position.x,z:hit.position.z};controls.enabled=false;renderer.domElement.setPointerCapture(e.pointerId)}}});
+renderer.domElement.addEventListener('pointermove',e=>{if(!dragging||!selection)return;getRay(e);const out=new THREE.Vector3();if(raycaster.ray.intersectPlane(ground,out)){const previous=selection.position.clone();selection.position.x=out.x;selection.position.z=out.z;keepInside(selection);if(objects.some(o=>overlapsFurniture(o,selection)))selection.position.copy(previous)}});
+function finishDrag(){if(dragging){dragging=false;controls.enabled=true;moveMode=false;renderPanel();scheduleSave()}}
+renderer.domElement.addEventListener('pointerup',finishDrag);renderer.domElement.addEventListener('pointercancel',finishDrag);
+function updateDrawer(){const ed=$('#editor');ed.classList.toggle('open',editing);ed.classList.toggle('expanded',panelExpanded);ed.classList.toggle('collapsed',panelCollapsed);$('#expandPanel').textContent=panelExpanded?'⊟':'⤢';$('#collapsePanel').textContent=panelCollapsed?'⌃':'⌄';$('#expandPanel').setAttribute('aria-label',panelExpanded?'編集パネルを縮小':'編集パネルを拡大');$('#collapsePanel').setAttribute('aria-label',panelCollapsed?'編集パネルを開く':'編集パネルを折りたたむ')}
+function cameraHome(){controls.enabled=true;dragging=false;controls.reset();controls.target.set(0,.7,-.25);const mobile=innerWidth<700;camera.fov=mobile?58:48;camera.position.set(mobile?13:11,mobile?10:8.5,mobile?20:14);camera.updateProjectionMatrix();controls.update();notify('部屋全体に戻しました')}
+function cameraTop(){controls.target.set(0,0,0);camera.position.set(0,23,.01);controls.update();notify('真上からの視点')}
+function zoomBy(factor){const v=camera.position.clone().sub(controls.target);v.multiplyScalar(factor);v.clampLength(controls.minDistance,controls.maxDistance);camera.position.copy(controls.target).add(v);controls.update()}
+function focusWindow(){
+  dragging=false;controls.enabled=true;
+  const mobile=innerWidth<700;
+  // From inside the room, look toward the back-wall window.
+  controls.target.set(0,1.35,-3.65);
+  camera.position.set(mobile?1.8:1.1,mobile?2.55:2.35,mobile?5.5:4.15);
+  camera.fov=mobile?62:50;camera.updateProjectionMatrix();controls.update();
+  notify('窓の方向に移動しました');
+}
+function openWindowPanel(){
+  editing=true;tab='window';moveMode=false;panelCollapsed=false;panelExpanded=false;
+  updateDrawer();renderPanel();$('#toggleEdit').textContent='DONE';
+  focusWindow();
+}
+$('#quickWindow').onclick=openWindowPanel;
+$('#focusWindow').onclick=focusWindow;
+$('#cameraHome').onclick=cameraHome;$('#resetView').onclick=cameraHome;$('#cameraTop').onclick=cameraTop;$('#cameraZoomIn').onclick=()=>zoomBy(.8);$('#cameraZoomOut').onclick=()=>zoomBy(1.3);
+$('#expandPanel').onclick=()=>{panelExpanded=!panelExpanded;panelCollapsed=false;updateDrawer()};$('#collapsePanel').onclick=()=>{panelCollapsed=!panelCollapsed;panelExpanded=false;updateDrawer()};document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;panelCollapsed=false;updateDrawer();renderPanel()});$('#save').onclick=saveNow;$('#undo').onclick=()=>restore(undoStack,redoStack);$('#redo').onclick=()=>restore(redoStack,undoStack);
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveNow()}else if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?restore(redoStack,undoStack):restore(undoStack,redoStack)}else if((e.key==='Delete'||e.key==='Backspace')&&selection&&editing&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){snapshot();scene.remove(selection);objects.splice(objects.indexOf(selection),1);selection=null;renderPanel();scheduleSave()}});
+
+// LIFE MODE v0.5: lightweight first-person exploration on the same room data.
+let currentMode='life',lifeYaw=0,lifePitch=0,lifeStanding=new THREE.Vector3(0,1.63,2.8),lifeSeated=false,lifeTarget=null,walkInput={forward:false,back:false,left:false,right:false};
+const keys=new Set();const editView={position:new THREE.Vector3(),target:new THREE.Vector3()};
+function refreshClock(){const h=timeMode==='real'?new Date().getHours():customHour;const minutes=timeMode==='real'?new Date().getMinutes():0;$('#lifeClock').textContent=String(h).padStart(2,'0')+':'+String(minutes).padStart(2,'0')+(timeMode==='real'?' · REAL':' · CUSTOM')}
+function toMode(mode){
+ if(mode===currentMode&&document.body.classList.contains(mode+'-mode'))return;
+ if(currentMode==='edit'){editView.position.copy(camera.position);editView.target.copy(controls.target)}
+ currentMode=mode;editing=mode==='edit';moveMode=false;dragging=false;controls.enabled=editing;
+ document.body.classList.toggle('life-mode',!editing);document.body.classList.toggle('edit-mode',editing);
+ $('#lifeMode').classList.toggle('active',!editing);$('#editMode').classList.toggle('active',editing);
+ $('#lifeMode').setAttribute('aria-pressed',String(!editing));$('#editMode').setAttribute('aria-pressed',String(editing));
+ $('#toggleEdit').textContent=editing?'DONE':'EDIT';
+ panelCollapsed=innerWidth<700;panelExpanded=false;updateDrawer();renderPanel();
+ if(editing){camera.fov=innerWidth<700?58:48;camera.position.copy(editView.position.length()>2?editView.position:new THREE.Vector3(11,8.5,14));controls.target.copy(editView.target.lengthSq()>0?editView.target:new THREE.Vector3(0,.7,-.25));camera.updateProjectionMatrix();controls.update();}
+ else{lifeSeated=false;lifeTarget=null;$('#lifeAction').hidden=true;lifeStanding.set(0,1.63,2.8);lifeYaw=0;lifePitch=0;camera.fov=innerWidth<700?73:67;camera.updateProjectionMatrix();camera.position.copy(lifeStanding);camera.rotation.order='YXZ';camera.rotation.set(lifePitch,lifeYaw,0);}
+ refreshClock();notify(editing?'部屋編集モード':'LIFE MODE：部屋を歩けます');
+}
+$('#lifeMode').onclick=()=>toMode('life');$('#editMode').onclick=()=>toMode('edit');
+$('#toggleEdit').onclick=()=>toMode(editing?'life':'edit');
+function occupantCollision(x,z){
+ if(x<-2.67||x>2.67||z<-3.65||z>3.65)return true;
+ return objects.some(o=>{if(['rug','art'].includes(o.userData.type))return false;const b=worldBox(o);const margin=.24;return x>b.min.x-margin&&x<b.max.x+margin&&z>b.min.z-margin&&z<b.max.z+margin});
+}
+let lifeTouch=null;
+renderer.domElement.addEventListener('pointerdown',e=>{if(currentMode!=='life'||e.pointerType==='touch'&&!e.isPrimary)return;lifeTouch={id:e.pointerId,x:e.clientX,y:e.clientY,downX:e.clientX,downY:e.clientY};renderer.domElement.setPointerCapture(e.pointerId)});
+renderer.domElement.addEventListener('pointermove',e=>{if(currentMode!=='life'||!lifeTouch||e.pointerId!==lifeTouch.id)return;const dx=e.clientX-lifeTouch.x,dy=e.clientY-lifeTouch.y;lifeTouch.x=e.clientX;lifeTouch.y=e.clientY;lifeYaw-=dx*.004;lifePitch=THREE.MathUtils.clamp(lifePitch-dy*.0035,-1.25,1.25)});
+renderer.domElement.addEventListener('pointerup',e=>{if(currentMode!=='life'||!lifeTouch||e.pointerId!==lifeTouch.id)return;const delta=Math.hypot(e.clientX-lifeTouch.downX,e.clientY-lifeTouch.downY);lifeTouch=null;if(delta<12){const hit=hitObject(e);lifeTarget=hit;const action=$('#lifeAction');action.hidden=!hit;if(hit)action.textContent=['sofa','chair','bed'].includes(hit.userData.type)?'座る・休む':hit.userData.type==='lamp'?'ライト切替':'家具を見る';}});
+$('#lifeAction').onclick=()=>{if(!lifeTarget)return;const type=lifeTarget.userData.type;if(['sofa','chair','bed'].includes(type)){lifeSeated=!lifeSeated;if(lifeSeated){const pos=lifeTarget.position;lifeStanding.set(THREE.MathUtils.clamp(pos.x,.0-2.65,2.65),type==='bed'?.9:1.12,THREE.MathUtils.clamp(pos.z+.42,-3.65,3.65));$('#lifeAction').textContent='立ち上がる'}else{lifeStanding.y=1.63;lifeStanding.z+=.8;$('#lifeAction').textContent='座る・休む'}}else if(type==='lamp'){lifeLightOn=!lifeLightOn;applyMaterials();notify(lifeLightOn?'照明をつけました':'照明を消しました')}else{notify('EDIT MODEで家具を調整できます')}};
+for(const b of document.querySelectorAll('[data-walk]')){const direction=b.dataset.walk;const on=e=>{e.preventDefault();walkInput[direction]=true;b.setPointerCapture(e.pointerId)};const off=e=>{walkInput[direction]=false};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('lostpointercapture',off)}
+addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;keys.add(e.key.toLowerCase());if(currentMode==='life'&&['arrowup','arrowdown','arrowleft','arrowright',' '].includes(e.key.toLowerCase()))e.preventDefault();if(e.key==='Escape'&&currentMode==='life'&&lifeSeated){lifeSeated=false;lifeStanding.y=1.63}});
+addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
+function updateLife(dt){if(currentMode!=='life')return;const forward=Number(walkInput.forward||keys.has('w')||keys.has('arrowup'))-Number(walkInput.back||keys.has('s')||keys.has('arrowdown'));const side=Number(walkInput.right||keys.has('d')||keys.has('arrowright'))-Number(walkInput.left||keys.has('a')||keys.has('arrowleft'));
+ if(!lifeSeated&&(forward||side)){const speed=Math.min(dt,.04)*2.0/Math.max(1,Math.hypot(forward,side));const dx=(-Math.sin(lifeYaw)*forward+Math.cos(lifeYaw)*side)*speed,dz=(-Math.cos(lifeYaw)*forward-Math.sin(lifeYaw)*side)*speed;if(!occupantCollision(lifeStanding.x+dx,lifeStanding.z))lifeStanding.x+=dx;if(!occupantCollision(lifeStanding.x,lifeStanding.z+dz))lifeStanding.z+=dz}
+ camera.position.copy(lifeStanding);camera.rotation.order='YXZ';camera.rotation.set(lifePitch,lifeYaw,0);
+}
+setInterval(()=>{refreshClock();if(timeMode==='real')applyMaterials()},45000);
+function fit(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}addEventListener('resize',fit);cameraHome();
+try{let saved=localStorage.getItem('roomverse-prototype-v3')||localStorage.getItem('roomverse-prototype-v2')||localStorage.getItem('roomverse-prototype-v1');
+ if(saved&&!localStorage.getItem('roomverse-pre032-original'))localStorage.setItem('roomverse-pre032-original',saved);
+ apply(saved?JSON.parse(saved):{objects:defaults});
+ if(!saved)saveNow();else if(JSON.stringify(serialize())!==saved)scheduleSave();
+}catch(e){apply({objects:defaults});notify('保存データの読み込みに失敗しました。元データは削除していません')}refreshUndo();const clock=new THREE.Clock();editView.position.set(11,8.5,14);editView.target.set(0,.7,-.25);toMode('life');function animate(){requestAnimationFrame(animate);const dt=clock.getDelta();if(currentMode==='edit')controls.update();else updateLife(dt);renderer.render(scene,camera)}animate();
+</script>
+</body></html>
